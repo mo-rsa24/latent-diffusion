@@ -137,7 +137,7 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--wandb_project", type=str, default="ldm-cxr", help="W&B project name.")
     parser.add_argument("--wandb_entity", default=None)
     parser.add_argument("--wandb_tags", type=str, help="Comma-separated tags for the W&B run.")
-    parser.add_argument("--max_epochs", type=int, default=100, help="Maximum number of training epochs.")
+    # parser.add_argument("--max_epochs", type=int, default=100, help="Maximum number of training epochs.")
     return parser
 
 
