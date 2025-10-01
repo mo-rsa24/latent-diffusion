@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 
 from packaging import version
 from omegaconf import OmegaConf
-from torch.utils.data import random_split, DataLoader, Dataset, Subset
+from torch.utils.data import random_split, DataLoader, Dataset, Subset, ConcatDataset
 from functools import partial
 from PIL import Image
 
@@ -17,6 +17,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateM
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import rank_zero_info
 
+from ldm.data.ChestXRay import ChestXrayDataset
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
 
@@ -120,6 +121,17 @@ def get_parser(**parser_kwargs):
         default=True,
         help="scale base-lr by ngpu * batch_size * n_accumulate",
     )
+    # In main.py, inside the get_parser() function
+
+    # Add these arguments to the parser
+    parser.add_argument("--data_root", type=str, default="../datasets/cleaned", help="Root directory of the dataset.")
+    parser.add_argument("--task", type=str, choices=["TB", "PNEUMONIA"], default="TB", help="The task to train on.")
+    parser.add_argument("--split", type=str, choices=["train", "val", "test"], default="train",
+                        help="The dataset split to use.")
+    parser.add_argument("--class_filter", type=int, default=None, help="Filter for a specific class.")
+    parser.add_argument("--overfit_one", action="store_true", help="Overfit on a single sample.")
+    parser.add_argument("--overfit_k", type=int, default=0, help="Overfit on a small subset of size K.")
+    parser.add_argument("--repeat_len", type=int, default=500, help="Virtual length of the dataset when overfitting.")
     return parser
 
 
@@ -468,6 +480,22 @@ if __name__ == "__main__":
     parser = Trainer.add_argparse_args(parser)
 
     opt, unknown = parser.parse_known_args()
+
+    # Custom data loading
+    dataset = ChestXrayDataset(
+        root_dir=opt.data_root,
+        task=opt.task,
+        split=opt.split,
+        img_size=256,  # Or get from config
+        class_filter=opt.class_filter
+    )
+
+    if opt.overfit_one:
+        dataset = Subset(dataset, [0])
+        dataset = ConcatDataset([dataset] * opt.repeat_len)
+    elif opt.overfit_k > 0:
+        dataset = Subset(dataset, list(range(min(opt.overfit_k, len(dataset)))))
+
     if opt.name and opt.resume:
         raise ValueError(
             "-n/--name and -r/--resume cannot be specified both."
