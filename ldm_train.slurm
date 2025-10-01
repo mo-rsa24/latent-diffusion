@@ -10,6 +10,15 @@ set -euo pipefail
 # ----------------------------
 # Environment & Setup
 # ----------------------------
+WORKDIR="${SLURM_SUBMIT_DIR}"
+
+# Change to the working directory to resolve relative file paths
+cd "$WORKDIR"
+echo "Working directory set to: $(pwd)"
+
+# Add the working directory to PYTHONPATH to resolve module imports
+export PYTHONPATH="$WORKDIR${PYTHONPATH:+:$PYTHONPATH}"
+
 # Activate your conda/mamba environment
 source ~/.bashrc
 mamba activate "${ENV_NAME:?Must set ENV_NAME}"
