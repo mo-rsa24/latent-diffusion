@@ -1,5 +1,7 @@
 import argparse, os, sys, datetime, glob, importlib, csv
 import numpy as np
+import wandb
+import torchvision
 import time
 import torch
 import torchvision
@@ -338,8 +340,10 @@ class ImageLogger(Callback):
     @rank_zero_only
     def log_local(self, save_dir, split, images,
                   global_step, current_epoch, batch_idx):
+        if save_dir is None:
+            print(f"Warning: logger save_dir is None. Skipping local image saving for step {global_step}.")
+            return
         root = os.path.join(save_dir, "images", split)
-        os.makedirs(root, exist_ok=True)
         for k in images:
             grid = torchvision.utils.make_grid(images[k], nrow=4)
             if self.rescale:
@@ -378,10 +382,18 @@ class ImageLogger(Callback):
                     images[k] = images[k].detach().cpu()
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
-
-            self.log_local(pl_module.logger.save_dir, split, images,
+            save_dir = pl_module.logger.save_dir
+            if save_dir is None:
+                save_dir = pl_module.trainer.default_root_dir
+            self.log_local(save_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
-
+            logger = pl_module.logger
+            if isinstance(logger, WandbLogger):
+                images_to_log = {
+                    f"{split}/{k}": [wandb.Image(images[k][i]) for i in range(images[k].shape[0])]
+                    for k in images
+                }
+                logger.experiment.log(images_to_log)
             logger_log_images = self.logger_log_images.get(logger, lambda *args, **kwargs: None)
             logger_log_images(pl_module, images, pl_module.global_step, split)
 

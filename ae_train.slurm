@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=x-ldm-cxr
+#SBATCH --job-name=ldm-cxr
 #SBATCH --partition=bigbatch
 #SBATCH --time=72:00:00
 #SBATCH --output=logs/%x-%j.out

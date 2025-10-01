@@ -45,7 +45,7 @@ model:
       target: ldm.models.autoencoder.AutoencoderKL
       # Add the path to your trained autoencoder checkpoint
       params:
-        ckpt_path: "path/to/your/trained/autoencoder/checkpoints/last.ckpt"
+        ckpt_path: "logs/2025-10-01T14-09-39_autoencoder_kl_8x8x64/checkpoints/epoch=000003.ckpt"
         embed_dim: 64
         monitor: "val/rec_loss"
         ddconfig:
