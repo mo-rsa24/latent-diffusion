@@ -342,11 +342,16 @@ class AutoencoderKL(pl.LightningModule):
         return dec, posterior
 
     def get_input(self, batch, k):
-        x = batch[k]
-        if len(x.shape) == 3:
-            x = x[..., None]
-        x = x.permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format).float()
-        return x
+        if isinstance(batch, dict):
+            x = batch[k]
+        elif isinstance(batch, (list, tuple)):
+            x = batch[0]
+        else:
+            raise TypeError(f"Unsupported batch type: {type(batch)}")
+        if len(x.shape) == 4 and x.shape[1] > 3:  # Simple heuristic: if channels > 3, it's likely channels-last
+            x = x.permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
+
+        return x.float()
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         inputs = self.get_input(batch, self.image_key)

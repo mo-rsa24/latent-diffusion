@@ -687,8 +687,34 @@ if __name__ == "__main__":
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir  ###
 
-        # data
+        if opt.data_root:
+            config.data.params.train.params.root_dir = opt.data_root
+            config.data.params.validation.params.root_dir = opt.data_root
+
+        if opt.task:
+            config.data.params.train.params.task = opt.task
+            config.data.params.validation.params.task = opt.task
+
+        if opt.class_filter is not None:
+            config.data.params.train.params.class_filter = opt.class_filter
+            config.data.params.validation.params.class_filter = opt.class_filter
+
         data = instantiate_from_config(config.data)
+
+        data.prepare_data()
+        data.setup()
+
+        if opt.overfit_one:
+            print(f"INFO: Overfitting on one sample, repeating for {opt.repeat_len} steps.")
+            train_dataset = data.datasets["train"]
+            data.datasets["train"] = Subset(train_dataset, [0])
+            # Virtually extend dataset length
+            data.datasets["train"] = ConcatDataset([data.datasets["train"]] * opt.repeat_len)
+        elif opt.overfit_k > 0:
+            print(f"INFO: Overfitting on {opt.overfit_k} samples.")
+            train_dataset = data.datasets["train"]
+            data.datasets["train"] = Subset(train_dataset, list(range(min(opt.overfit_k, len(train_dataset)))))
+
         # NOTE according to https://pytorch-lightning.readthedocs.io/en/latest/datamodules.html
         # calling these ourselves should not be necessary but it is.
         # lightning still takes care of proper multiprocessing though
