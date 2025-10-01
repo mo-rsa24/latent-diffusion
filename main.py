@@ -378,9 +378,7 @@ class ImageLogger(Callback):
                     images[k] = images[k].detach().cpu()
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
-            save_dir = pl_module.logger.save_dir
-            if save_dir is None:
-                save_dir = pl_module.trainer.default_root_dir
+
             self.log_local(pl_module.logger.save_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
 
