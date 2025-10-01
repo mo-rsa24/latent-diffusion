@@ -49,10 +49,11 @@ lightning:
     image_logger:
       target: main.ImageLogger
       params:
-        batch_frequency: 1000
-        max_images: 8
+        batch_freq: 250         # Log images every 5000 training steps
+        max_images: 8            # How many images to log
+        clamp: True
         increase_log_steps: True
 
   trainer:
-    benchmark: True
-    accumulate_grad_batches: 2
+    # This controls how often scalar losses are logged to the console/WandB
+    log_every_n_steps: 100

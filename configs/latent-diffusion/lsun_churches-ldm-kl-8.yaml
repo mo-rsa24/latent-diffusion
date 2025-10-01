@@ -29,53 +29,66 @@ model:
     unet_config:
       target: ldm.modules.diffusionmodules.openaimodel.UNetModel
       params:
-        image_size: 32
-        in_channels: 4
-        out_channels: 4
-        model_channels: 192
-        attention_resolutions: [ 1, 2, 4, 8 ]   # 32, 16, 8, 4
+        image_size: 32  # Latent resolution (256 / f=8 downsampling = 32)
+        in_channels: 64 # <-- CRITICAL: Must match z_channels from the autoencoder
+        out_channels: 64 # Must also match z_channels
+        model_channels: 256
+        attention_resolutions: [ 4, 2, 1 ] # Corresponds to latent resolutions 32->16->8
         num_res_blocks: 2
-        channel_mult: [ 1,2,2,4,4 ]  # 32, 16, 8, 4, 2
+        channel_mult: [ 1, 2, 4, 4 ]
         num_heads: 8
-        use_scale_shift_norm: True
-        resblock_updown: True
+        use_spatial_transformer: true
+        transformer_depth: 1
+        context_dim: 768
 
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKL
+      # Add the path to your trained autoencoder checkpoint
       params:
-        embed_dim: 4
+        ckpt_path: "path/to/your/trained/autoencoder/checkpoints/last.ckpt"
+        embed_dim: 64
         monitor: "val/rec_loss"
-        ckpt_path: "models/first_stage_models/kl-f8/model.ckpt"
         ddconfig:
           double_z: True
-          z_channels: 4
+          z_channels: 64
           resolution: 256
-          in_channels: 3
-          out_ch: 3
+          in_channels: 1         # Must match your AE
+          out_ch: 1            # Must match your AE
           ch: 128
-          ch_mult: [ 1,2,4,4 ]  # num_down = len(ch_mult)-1
+          ch_mult: [ 1,1,2,2,4,4 ]
           num_res_blocks: 2
-          attn_resolutions: [ ]
+          attn_resolutions: [ 16,8 ]
           dropout: 0.0
         lossconfig:
-          target: torch.nn.Identity
+          target: ldm.modules.losses.LPIPSWithDiscriminator
+          params:
+            disc_start: 50001
+            kl_weight: 0.000001
+            disc_weight: 0.5
+            disc_in_channels: 1  # Must match your AE
+          
 
     cond_stage_config: "__is_unconditional__"
 
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 96
-    num_workers: 5
-    wrap: False
+    batch_size: 8 # Adjust as needed
+    num_workers: 8
     train:
-      target: ldm.data.lsun.LSUNChurchesTrain
+      target: ldm.data.ChestXRay.ChestXrayDataset
       params:
-        size: 256
+        root_dir: "../datasets/cleaned"
+        task: "TB"
+        split: "train"
+        img_size: 256
     validation:
-      target: ldm.data.lsun.LSUNChurchesValidation
+      target: ldm.data.ChestXRay.ChestXrayDataset
       params:
-        size: 256
+        root_dir: "../datasets/cleaned"
+        task: "TB"
+        split: "val"
+        img_size: 256
 
 lightning:
   callbacks:

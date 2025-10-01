@@ -4,7 +4,7 @@ import time
 import torch
 import torchvision
 import pytorch_lightning as pl
-
+from pytorch_lightning.loggers import WandbLogger
 from packaging import version
 from omegaconf import OmegaConf
 from torch.utils.data import random_split, DataLoader, Dataset, Subset, ConcatDataset
@@ -132,6 +132,12 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--overfit_one", action="store_true", help="Overfit on a single sample.")
     parser.add_argument("--overfit_k", type=int, default=0, help="Overfit on a small subset of size K.")
     parser.add_argument("--repeat_len", type=int, default=500, help="Virtual length of the dataset when overfitting.")
+
+    parser.add_argument("--wandb", action="store_true", help="Enable logging to Weights & Biases.")
+    parser.add_argument("--wandb_project", type=str, default="ldm-cxr", help="W&B project name.")
+    parser.add_argument("--wandb_entity", default=None)
+    parser.add_argument("--wandb_tags", type=str, help="Comma-separated tags for the W&B run.")
+    parser.add_argument("--max_epochs", type=int, default=100, help="Maximum number of training epochs.")
     return parser
 
 
@@ -682,8 +688,20 @@ if __name__ == "__main__":
         elif 'ignore_keys_callback' in callbacks_cfg:
             del callbacks_cfg['ignore_keys_callback']
 
-        trainer_kwargs["callbacks"] = [instantiate_from_config(callbacks_cfg[k]) for k in callbacks_cfg]
 
+        logger = None
+        if opt.wandb:
+            print("INFO: Setting up Weights & Biases logger.")
+            wandb_logger = WandbLogger(
+                name=opt.name,
+                project=opt.wandb_project,
+                entity=opt.wandb_entity,
+                config=OmegaConf.to_container(config),  # Log the entire config
+                tags=opt.wandb_tags.split(',') if opt.wandb_tags else []
+            )
+            logger = wandb_logger
+        trainer_kwargs["logger"] = logger
+        trainer_kwargs["callbacks"] = [instantiate_from_config(callbacks_cfg[k]) for k in callbacks_cfg]
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir  ###
 

@@ -327,12 +327,24 @@ class DDPM(pl.LightningModule):
         return self.p_losses(x, t, *args, **kwargs)
 
     def get_input(self, batch, k):
-        x = batch[k]
-        if len(x.shape) == 3:
-            x = x[..., None]
-        x = rearrange(x, 'b h w c -> b c h w')
-        x = x.to(memory_format=torch.contiguous_format).float()
-        return x
+        # If the batch is a dictionary, get the image by key
+        if isinstance(batch, dict):
+            x = batch[k]
+        # If the batch is a list or tuple, assume the image is the first element
+        elif isinstance(batch, (list, tuple)):
+            x = batch[0]
+        else:
+            # Raise an error for unsupported batch types
+            raise TypeError(f"Unsupported batch type: {type(batch)}")
+
+        # The original code permutes from (B, H, W, C) to (B, C, H, W).
+        # Your ChestXRay.py already provides data in (B, C, H, W) format, so this is not needed
+        # and could cause errors. We can safely return the tensor as is.
+        # if len(x.shape) == 3:
+        #     x = x[..., None]
+        # x = rearrange(x, 'b h w c -> b c h w').to(memory_format=torch.contiguous_format).float()
+
+        return x.float()
 
     def shared_step(self, batch):
         x = self.get_input(batch, self.first_stage_key)
