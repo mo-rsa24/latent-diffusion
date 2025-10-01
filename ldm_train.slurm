@@ -14,7 +14,12 @@ WORKDIR="${SLURM_SUBMIT_DIR}"
 
 # Change to the working directory to resolve relative file paths
 cd "$WORKDIR"
+echo "SLURM Job:  ${SLURM_JOB_ID:-<local>}"
+echo "Config:     $CONFIG_PATH"
 echo "Working directory set to: $(pwd)"
+
+echo "Attempting to locate config file..."
+ls -l "$CONFIG_PATH"
 
 # Add the working directory to PYTHONPATH to resolve module imports
 export PYTHONPATH="$WORKDIR${PYTHONPATH:+:$PYTHONPATH}"

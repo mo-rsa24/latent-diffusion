@@ -9,7 +9,7 @@ set -euo pipefail
 export ENV_NAME="ldm" # Or whatever your environment is named
 
 # --- Key Training Parameters ---
-export CONFIG_PATH="configs/autoencoder/cxr_autoencoder_kl_8x8x64.yaml"
+export CONFIG_PATH="configs/autoencoder/autoencoder_kl_8x8x64.yaml"
 export DATA_ROOT="/datasets/mmolefe/cleaned"
 export TASK="TB"
 export CLASS_FILTER="1" # 1 for diseased, 0 for normal
